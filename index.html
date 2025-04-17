@@ -44,6 +44,8 @@
     <button class="button" onclick="addPiece()">추가</button>
   </div>
 
+  <button class="button" onclick="renderByDate()">📅 날짜별 연습 보기</button>
+  <div id="calendarList"></div>
   <div id="pieceList"></div>
 
   <script>
@@ -115,6 +117,24 @@
             records = parsed.records;
             saveAll();
             renderPieces();
+
+    function renderByDate() {
+      const box = document.getElementById('calendarList');
+      box.innerHTML = '<h3>📆 날짜별 연습 기록</h3>';
+      const grouped = {};
+      records.forEach(r => {
+        if (!grouped[r.date]) grouped[r.date] = [];
+        grouped[r.date].push(r);
+      });
+      const dates = Object.keys(grouped).sort().reverse();
+      dates.forEach(date => {
+        const section = document.createElement('div');
+        section.style.marginTop = '0.75rem';
+        section.innerHTML = `<strong>${date}</strong><br>` +
+          grouped[date].map(r => `🎹 ${r.name} - ${r.count}회`).join('<br>');
+        box.appendChild(section);
+      });
+    }
           }
         } catch (err) {
           alert('불러오기 실패');
