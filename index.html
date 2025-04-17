@@ -17,6 +17,7 @@
     .card { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; }
     .card h3 { margin: 0; cursor: pointer; font-size: 1.1rem; }
     .history { margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem; color: #555; display: none; }
+    .checkbox-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -35,6 +36,7 @@
   <script>
     const records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
     let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
+    const todayStr = new Date().toISOString().split('T')[0];
 
     document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', {
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -42,39 +44,85 @@
 
     function saveAll() {
       localStorage.setItem('piecesV4', JSON.stringify(pieces));
+      localStorage.setItem('recordsV4', JSON.stringify(records));
     }
 
     function addPiece() {
       const input = document.getElementById('newPiece');
       const name = input.value.trim();
       if (!name) return;
-      if (!pieces.includes(name)) {
-        pieces.push(name);
+      if (!pieces.find(p => p.name === name)) {
+        pieces.push({ name, enabled: true });
         saveAll();
         renderPieces();
       }
       input.value = '';
     }
 
+    function toggleEnabled(index) {
+      pieces[index].enabled = !pieces[index].enabled;
+      saveAll();
+      renderPieces();
+    }
+
+    function addCount(name) {
+      let rec = records.find(r => r.name === name && r.date === todayStr);
+      if (!rec) {
+        rec = { name, date: todayStr, count: 1 };
+        records.push(rec);
+      } else {
+        rec.count++;
+      }
+      saveAll();
+      renderPieces();
+    }
+
     function renderPieces() {
       const container = document.getElementById('pieceList');
       container.innerHTML = '';
-      pieces.forEach(name => {
+      pieces.forEach((p, idx) => {
+        if (!p.enabled) return;
         const card = document.createElement('div');
         card.className = 'card';
 
-        const title = document.createElement('h3');
-        title.textContent = name;
-        title.onclick = () => {
+        const topRow = document.createElement('div');
+        topRow.className = 'checkbox-wrap';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.onchange = () => toggleEnabled(idx);
+
+        const label = document.createElement('label');
+        label.textContent = p.name;
+        label.style.fontWeight = 'bold';
+        label.onclick = () => {
           historyBox.style.display = historyBox.style.display === 'none' ? 'block' : 'none';
         };
 
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+1회';
+        addBtn.className = 'button';
+        addBtn.style.padding = '0.25rem 0.5rem';
+        addBtn.style.fontSize = '0.8rem';
+        addBtn.onclick = () => addCount(p.name);
+
+        const todayLog = records.find(r => r.name === p.name && r.date === todayStr);
+        const countText = document.createElement('span');
+        countText.textContent = `오늘 ${todayLog?.count || 0}회`;
+        countText.style.marginLeft = '0.5rem';
+
+        topRow.appendChild(checkbox);
+        topRow.appendChild(label);
+        topRow.appendChild(addBtn);
+        topRow.appendChild(countText);
+
         const historyBox = document.createElement('div');
         historyBox.className = 'history';
-        const logs = records.filter(r => r.name === name).sort((a, b) => b.date.localeCompare(a.date));
+        const logs = records.filter(r => r.name === p.name).sort((a, b) => b.date.localeCompare(a.date));
         historyBox.innerHTML = logs.map(log => `<div>${log.date}: ${log.count}회</div>`).join('') || '<div>기록 없음</div>';
 
-        card.appendChild(title);
+        card.appendChild(topRow);
         card.appendChild(historyBox);
         container.appendChild(card);
       });
