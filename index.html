@@ -19,6 +19,7 @@
     .history { margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem; color: #555; display: none; }
     .checkbox-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
     .utility { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .session-timer { text-align: center; margin: 1rem 0; font-size: 1.1rem; }
   </style>
 </head>
 <body>
@@ -33,6 +34,11 @@
     <button class="button" onclick="resetAll()">🧼 초기화</button>
   </div>
 
+  <div class="session-timer">
+    ⏱ 오늘 총 연습 시간: <span id="sessionTime">0분 0초</span>
+    <button class="button" onclick="toggleSessionTimer()" id="sessionBtn">시작</button>
+  </div>
+
   <div class="input-group">
     <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)">
     <button class="button" onclick="addPiece()">추가</button>
@@ -43,6 +49,9 @@
   <script>
     const records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
     let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
+    let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
+    let sessionTimer = null;
+    let sessionStart = null;
     const todayStr = new Date().toISOString().split('T')[0];
 
     document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', {
@@ -52,6 +61,37 @@
     function saveAll() {
       localStorage.setItem('piecesV4', JSON.stringify(pieces));
       localStorage.setItem('recordsV4', JSON.stringify(records));
+      localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
+    }
+
+    function toggleSessionTimer() {
+      const btn = document.getElementById('sessionBtn');
+      if (!sessionTimer) {
+        sessionStart = Date.now();
+        sessionTimer = setInterval(() => {
+          const now = Date.now();
+          const totalSec = Math.floor((now - sessionStart) / 1000);
+          const totalMins = (sessionTime[todayStr] || 0) + totalSec / 60;
+          document.getElementById('sessionTime').textContent = formatTime(totalMins);
+        }, 1000);
+        btn.textContent = '종료';
+      } else {
+        clearInterval(sessionTimer);
+        const now = Date.now();
+        const diffSec = Math.floor((now - sessionStart) / 1000);
+        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diffSec / 60;
+        sessionTimer = null;
+        sessionStart = null;
+        btn.textContent = '시작';
+        document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr]);
+        saveAll();
+      }
+    }
+
+    function formatTime(mins) {
+      const min = Math.floor(mins);
+      const sec = Math.round((mins - min) * 60);
+      return `${min}분 ${sec}초`;
     }
 
     function exportCSV() {
@@ -87,8 +127,10 @@
       if (confirm('모든 데이터를 초기화할까요?')) {
         pieces = [];
         records.length = 0;
+        sessionTime = {};
         saveAll();
         renderPieces();
+        document.getElementById('sessionTime').textContent = '0분 0초';
       }
     }
 
@@ -174,6 +216,7 @@
     }
 
     renderPieces();
+    document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
   </script>
 </body>
 </html>
