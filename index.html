@@ -20,6 +20,12 @@
       font-size: 1.5rem;
       font-weight: bold;
     }
+    .date-display {
+      font-size: 1rem;
+      text-align: center;
+      margin-top: 0.25rem;
+      color: #555;
+    }
     main {
       padding: 1rem;
     }
@@ -72,7 +78,10 @@
   </style>
 </head>
 <body>
-  <header>디피갤 피출</header>
+  <header>
+    디피갤 피출
+    <div class="date-display" id="todayDate"></div>
+  </header>
   <main>
     <button class="button" onclick="startPractice()">🎵 연습 시작 (타이머)</button>
 
@@ -158,6 +167,13 @@
       });
     }
 
+    function showTodayDate() {
+      const today = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      document.getElementById('todayDate').innerText = today.toLocaleDateString('ko-KR', options);
+    }
+
+    showTodayDate();
     renderHistory();
   </script>
 </body>
