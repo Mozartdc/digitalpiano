@@ -67,6 +67,7 @@
       <div class="stats-table" id="statsTable"></div>
     </div>
   </main>
+
   <script>
     let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
     let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
@@ -74,8 +75,13 @@
     let sessionTimer = null;
     let sessionStart = null;
     const todayStr = new Date().toISOString().split('T')[0];
-    document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', {
-      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+      });
+      renderPieces();
+      document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
     });
 
     function formatTime(mins) {
@@ -95,7 +101,7 @@
       const startInput = document.getElementById('startPicker');
       const endInput = document.getElementById('endPicker');
       if (!sessionTimer) {
-        let selected = startInput.value;
+        let selected = startInput?.value;
         if (selected) {
           const today = new Date();
           const [h, m] = selected.split(":");
@@ -113,10 +119,10 @@
           document.getElementById('sessionTime').textContent = formatTime(totalMins);
         }, 1000);
         btn.textContent = '종료';
-        endInput.style.display = 'inline-block';
+        if (endInput) endInput.style.display = 'inline-block';
       } else {
         let endTime = Date.now();
-        if (endInput.value) {
+        if (endInput?.value) {
           const today = new Date();
           const [h, m] = endInput.value.split(":");
           today.setHours(parseInt(h));
@@ -132,7 +138,7 @@
         sessionTimer = null;
         sessionStart = null;
         btn.textContent = '시작';
-        endInput.style.display = 'none';
+        if (endInput) endInput.style.display = 'none';
         document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr]);
         saveAll();
       }
@@ -145,6 +151,30 @@
       pieces.push({ name, emoji: '🎹', active: true });
       input.value = '';
       saveAll();
+      renderPieces();
+    }
+
+    function renderPieces() {
+      const box = document.getElementById('pieceList');
+      box.innerHTML = '';
+      pieces.forEach((p, idx) => {
+        if (!p.active) return;
+        const row = document.createElement('div');
+        row.className = 'card-row';
+        row.innerHTML = `
+          <div class="card-left">
+            <input type="checkbox" onchange="toggleCheck(${idx})" />
+            <span class="emoji">${p.emoji}</span>
+            <span class="piece-title">${p.name}</span>
+          </div>
+          <div class="stats">0회</div>
+        `;
+        box.appendChild(row);
+      });
+    }
+
+    function toggleCheck(idx) {
+      // 체크박스 로직 필요시 여기에 추가
     }
   </script>
 </body>
