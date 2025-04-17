@@ -102,7 +102,27 @@
       const time = document.getElementById('practiceTime').value;
       const note = document.getElementById('practiceNote').value;
       const link = document.getElementById('practiceLink').value;
-      alert(`곡: ${currentPiece}\n시간: ${time}분\n메모: ${note}\n링크: ${link}`);
+      const date = new Date().toISOString().split('T')[0];
+
+      const record = {
+        piece: currentPiece,
+        date,
+        time,
+        note,
+        link
+      };
+
+      const logs = JSON.parse(localStorage.getItem('practiceLogs') || '[]');
+      logs.push(record);
+      localStorage.setItem('practiceLogs', JSON.stringify(logs));
+
+      alert(`저장 완료!\n\n곡: ${currentPiece}\n시간: ${time}분\n날짜: ${date}`);
+
+      // 입력 초기화
+      document.getElementById('practiceTime').value = '';
+      document.getElementById('practiceNote').value = '';
+      document.getElementById('practiceLink').value = '';
+      document.getElementById('recordSection').style.display = 'none';
     }
 
     function startPractice() {
