@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>디피갤 피출 V3</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>디피갤 피출 V4</title>
   <style>
     body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
     header { background: #f3f4f6; padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: bold; }
     .date { font-size: 1rem; color: #666; margin-top: 0.25rem; }
     main { padding: 1rem; }
     .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
-    .card { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f9fafb; }
-    .card.done { opacity: 0.5; text-decoration: line-through; }
-    .card-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .inline { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
-    input, textarea { width: 100%; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; margin-top: 0.25rem; }
-    .sub { font-size: 0.9rem; color: #666; margin-top: 0.5rem; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 12px; padding: 0.75rem 1rem; margin: 0.5rem 0; }
+    .card-left { display: flex; align-items: center; gap: 0.5rem; }
+    .emoji { font-size: 1.2rem; }
+    .piece-title { font-weight: bold; font-size: 1rem; }
+    .stats { font-size: 1rem; color: #333; }
+    .input-group { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    input[type='text'] { flex: 1; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
+    .session-timer { margin: 1rem 0; text-align: center; font-size: 1.2rem; color: #4f46e5; }
+    .details { margin-top: 1rem; padding: 0.5rem 1rem; border: 1px solid #ccc; border-radius: 8px; display: none; }
+    .details textarea, .details input { width: 100%; margin-top: 0.5rem; padding: 0.5rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
@@ -24,109 +28,148 @@
     <div class="date" id="today"></div>
   </header>
   <main>
-    <div class="inline">
+    <div class="session-timer">
+      ⏱ 오늘 총 연습 시간: <span id="sessionTime">0</span>분
+      <button class="button" onclick="toggleSessionTimer()" id="sessionBtn">시작</button>
+    </div>
+
+    <div class="input-group">
       <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)" />
       <button class="button" onclick="addPiece()">추가</button>
     </div>
+
     <div id="pieceList"></div>
+    <div id="detailsBox" class="details"></div>
   </main>
+
   <script>
     const todayStr = new Date().toISOString().split('T')[0];
     document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
-    let pieces = JSON.parse(localStorage.getItem('pieces') || '[]');
-    let records = JSON.parse(localStorage.getItem('records') || '[]');
+    let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
+    let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
+    let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
+    let sessionTimer = null;
+    let sessionStart = null;
 
     function saveAll() {
-      localStorage.setItem('pieces', JSON.stringify(pieces));
-      localStorage.setItem('records', JSON.stringify(records));
+      localStorage.setItem('piecesV4', JSON.stringify(pieces));
+      localStorage.setItem('recordsV4', JSON.stringify(records));
+      localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
+    }
+
+    function toggleSessionTimer() {
+      const btn = document.getElementById('sessionBtn');
+      if (!sessionTimer) {
+        sessionStart = Date.now();
+        sessionTimer = setInterval(() => {
+          const now = Date.now();
+          const diff = Math.round((now - sessionStart) / 1000 / 60);
+          document.getElementById('sessionTime').textContent = (sessionTime[todayStr] || 0) + diff;
+        }, 1000);
+        btn.textContent = '종료';
+      } else {
+        clearInterval(sessionTimer);
+        const now = Date.now();
+        const diff = Math.round((now - sessionStart) / 1000 / 60);
+        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diff;
+        sessionTimer = null;
+        sessionStart = null;
+        btn.textContent = '시작';
+        document.getElementById('sessionTime').textContent = sessionTime[todayStr];
+        saveAll();
+      }
     }
 
     function addPiece() {
-      const name = document.getElementById('newPiece').value.trim();
+      const input = document.getElementById('newPiece');
+      const name = input.value.trim();
       if (!name) return;
-      pieces.push({ name, active: true });
-      document.getElementById('newPiece').value = '';
+      pieces.push({ name, emoji: '🎹', active: true });
+      input.value = '';
       saveAll();
       renderPieces();
     }
 
     function renderPieces() {
-      const container = document.getElementById('pieceList');
-      container.innerHTML = '';
-      pieces.forEach((piece, idx) => {
-        if (!piece.active) return;
-
-        const todayRecord = records.find(r => r.date === todayStr && r.name === piece.name) || { time: 0, count: 0 };
-
-        const div = document.createElement('div');
-        div.className = 'card';
-
-        div.innerHTML = `
-          <div class="card-title">${piece.name}</div>
-          <div class="sub">⏱ ${todayRecord.time || 0}분 | 🧾 ${todayRecord.count || 0}회</div>
-
-          <div class="inline">
-            <button class="button" onclick="startTimer(${idx})">⏱ 타이머</button>
-            <button class="button" onclick="changeCount(${idx}, 1)">+1회</button>
-            <button class="button" onclick="changeCount(${idx}, -1)">-1회</button>
+      const box = document.getElementById('pieceList');
+      box.innerHTML = '';
+      pieces.forEach((p, idx) => {
+        if (!p.active) return;
+        const r = records.find(r => r.date === todayStr && r.name === p.name) || { checked: false, count: 0 };
+        const row = document.createElement('div');
+        row.className = 'card-row';
+        row.innerHTML = `
+          <div class="card-left">
+            <input type="checkbox" ${r.checked ? 'checked' : ''} onchange="toggleCheck(${idx})" />
+            <span class="emoji">${p.emoji}</span>
+            <span class="piece-title">${p.name}</span>
           </div>
-          <textarea placeholder="메모 입력" id="note-${idx}"></textarea>
-          <input type="url" placeholder="링크 (유튜브 등)" id="link-${idx}" />
-          <div class="inline">
-            <label><input type="checkbox" id="repeat-${idx}" checked /> 내일도 계속하기</label>
-            <button class="button" onclick="finishPractice(${idx})">저장</button>
-          </div>
+          <div class="stats" onclick="showDetails(${idx})">${r.count}/5회</div>
         `;
-        container.appendChild(div);
+        box.appendChild(row);
       });
     }
 
-    function startTimer(idx) {
-      const start = Date.now();
-      alert("타이머 시작됨. 끝나면 OK 누르세요.");
-      const end = Date.now();
-      const diffMin = Math.round((end - start) / 1000 / 60);
-      updateTime(idx, diffMin);
-    }
-
-    function updateTime(idx, min) {
+    function toggleCheck(idx) {
       const name = pieces[idx].name;
       let rec = records.find(r => r.date === todayStr && r.name === name);
       if (!rec) {
-        rec = { date: todayStr, name, time: 0, count: 0 };
+        rec = { date: todayStr, name, checked: true, count: 0, note: '', link: '' };
+        records.push(rec);
+      } else {
+        rec.checked = !rec.checked;
+      }
+      saveAll();
+    }
+
+    function showDetails(idx) {
+      const name = pieces[idx].name;
+      let rec = records.find(r => r.date === todayStr && r.name === name);
+      if (!rec) {
+        rec = { date: todayStr, name, checked: false, count: 0, note: '', link: '' };
         records.push(rec);
       }
-      rec.time += min;
-      saveAll();
-      renderPieces();
+      const box = document.getElementById('detailsBox');
+      box.innerHTML = `
+        <h3>${name} 상세 입력</h3>
+        <div style="display:flex; gap:0.5rem; margin:0.5rem 0;">
+          <button class="button" onclick="changeCount(${idx}, 1)">+1회</button>
+          <button class="button" onclick="changeCount(${idx}, -1)">-1회</button>
+        </div>
+        <textarea id="noteBox" rows="3" placeholder="메모 입력">${rec.note || ''}</textarea>
+        <input type="url" id="linkBox" placeholder="링크 (유튜브 등)" value="${rec.link || ''}" />
+        <div style="margin-top:0.5rem;"><label><input type="checkbox" id="keepCheck" checked /> 내일도 계속하기</label></div>
+        <button class="button" onclick="saveDetail(${idx})">저장</button>
+      `;
+      box.style.display = 'block';
     }
 
     function changeCount(idx, delta) {
       const name = pieces[idx].name;
       let rec = records.find(r => r.date === todayStr && r.name === name);
-      if (!rec) {
-        rec = { date: todayStr, name, time: 0, count: 0 };
-        records.push(rec);
-      }
+      if (!rec) return;
       rec.count += delta;
       if (rec.count < 0) rec.count = 0;
       saveAll();
       renderPieces();
+      showDetails(idx);
     }
 
-    function finishPractice(idx) {
-      const note = document.getElementById(`note-${idx}`).value;
-      const link = document.getElementById(`link-${idx}`).value;
-      const keep = document.getElementById(`repeat-${idx}`).checked;
+    function saveDetail(idx) {
+      const name = pieces[idx].name;
+      const rec = records.find(r => r.date === todayStr && r.name === name);
+      rec.note = document.getElementById('noteBox').value;
+      rec.link = document.getElementById('linkBox').value;
+      const keep = document.getElementById('keepCheck').checked;
       if (!keep) pieces[idx].active = false;
-      alert("연습 저장됨! 메모와 링크는 기록됨 (console 확인용).");
-      console.log("메모:", note);
-      console.log("링크:", link);
       saveAll();
       renderPieces();
+      document.getElementById('detailsBox').style.display = 'none';
     }
 
+    // 초기화 렌더링
+    document.getElementById('sessionTime').textContent = sessionTime[todayStr] || 0;
     renderPieces();
   </script>
 </body>
