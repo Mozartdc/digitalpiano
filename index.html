@@ -78,8 +78,163 @@
     }
   </script>
 <script>
-// 전체 기능 코드 복원은 완료되었으며, 여기 아래에 자바스크립트 전체 스크립트가 삽입됩니다.
-// 생략된 전체 코드 대신 canvas를 통해 저장하거나 다운로드하여 확인하세요.
+    const todayStr = new Date().toISOString().split('T')[0];
+    const records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
+    let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
+    let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
+    let sessionTimer = null;
+    let sessionStart = null;
+
+    document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', {
+      year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+    });
+
+    function saveAll() {
+      localStorage.setItem('piecesV4', JSON.stringify(pieces));
+      localStorage.setItem('recordsV4', JSON.stringify(records));
+      localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
+    }
+
+    function toggleSessionTimer() {
+      const btn = document.getElementById('sessionBtn');
+      if (!sessionTimer) {
+        sessionStart = Date.now();
+        sessionTimer = setInterval(() => {
+          const now = Date.now();
+          const totalSec = Math.floor((now - sessionStart) / 1000);
+          const totalMins = (sessionTime[todayStr] || 0) + totalSec / 60;
+          document.getElementById('sessionTime').textContent = formatTime(totalMins);
+        }, 1000);
+        btn.textContent = '종료';
+      } else {
+        clearInterval(sessionTimer);
+        const now = Date.now();
+        const diffSec = Math.floor((now - sessionStart) / 1000);
+        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diffSec / 60;
+        sessionTimer = null;
+        sessionStart = null;
+        btn.textContent = '시작';
+        document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr]);
+        saveAll();
+      }
+    }
+
+    function formatTime(mins) {
+      const min = Math.floor(mins);
+      const sec = Math.round((mins - min) * 60);
+      return `${min}분 ${sec}초`;
+    }
+
+    function addPiece() {
+      const input = document.getElementById('newPiece');
+      const name = input.value.trim();
+      if (!name) return;
+      if (!pieces.find(p => p.name === name)) {
+        pieces.push({ name });
+        saveAll();
+        renderPieces();
+      }
+      input.value = '';
+    }
+
+    function addCount(name) {
+      let rec = records.find(r => r.name === name && r.date === todayStr);
+      if (!rec) {
+        rec = { name, date: todayStr, count: 1 };
+        records.push(rec);
+      } else {
+        rec.count++;
+      }
+      saveAll();
+      renderPieces();
+    }
+
+    function renderPieces() {
+      const container = document.getElementById('pieceList');
+      container.innerHTML = '';
+      pieces.forEach((p, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const title = document.createElement('h3');
+        title.textContent = p.name;
+        title.onclick = () => {
+          historyBox.style.display = historyBox.style.display === 'none' ? 'block' : 'none';
+        };
+
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+1회';
+        addBtn.className = 'button';
+        addBtn.style.padding = '0.25rem 0.5rem';
+        addBtn.style.fontSize = '0.8rem';
+        addBtn.onclick = () => addCount(p.name);
+
+        const todayLog = records.find(r => r.name === p.name && r.date === todayStr);
+        const countText = document.createElement('span');
+        countText.textContent = `오늘 ${todayLog?.count || 0}회`;
+        countText.style.marginLeft = '0.5rem';
+
+        const topRow = document.createElement('div');
+        topRow.style.display = 'flex';
+        topRow.style.alignItems = 'center';
+        topRow.style.gap = '0.5rem';
+        topRow.appendChild(title);
+        topRow.appendChild(addBtn);
+        topRow.appendChild(countText);
+
+        const historyBox = document.createElement('div');
+        historyBox.className = 'history';
+        const logs = records.filter(r => r.name === p.name).sort((a, b) => b.date.localeCompare(a.date));
+        historyBox.innerHTML = logs.map(log => `<div>${log.date}: ${log.count}회</div>`).join('') || '<div>기록 없음</div>';
+
+        card.appendChild(topRow);
+        card.appendChild(historyBox);
+        container.appendChild(card);
+      });
+    }
+
+    function exportCSV() {
+      const all = JSON.stringify({ pieces, records });
+      const blob = new Blob([all], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'practice-log.json';
+      a.click();
+    }
+
+    function importCSV(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          if (parsed.pieces && parsed.records) {
+            pieces = parsed.pieces;
+            records = parsed.records;
+            saveAll();
+            renderPieces();
+          }
+        } catch (err) {
+          alert('불러오기 실패');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAll() {
+      if (confirm('모든 데이터를 초기화할까요?')) {
+        pieces = [];
+        records.length = 0;
+        sessionTime = {};
+        saveAll();
+        renderPieces();
+        document.getElementById('sessionTime').textContent = '0분 0초';
+      }
+    }
+
+    renderPieces();
+    document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
 </script>
 </body>
 </html>
