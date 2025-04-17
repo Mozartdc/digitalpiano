@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>디피갤 피출</title>
-  <link rel="manifest" href="manifest.json">
   <style>
     body {
       margin: 0;
@@ -29,92 +27,136 @@
     .container {
       padding: 1rem;
     }
+    .song-form {
+      display: flex;
+      margin-bottom: 1rem;
+    }
+    .song-form input {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .song-form button {
+      margin-left: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
     .song-list {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.75rem;
     }
     .song-item {
       background: #fff;
-      padding: 1rem;
-      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      cursor: pointer;
     }
     .song-title {
       font-size: 1rem;
     }
-    .start-btn {
+    .small {
+      font-size: 0.8rem;
+      color: #888;
+    }
+    .start-btn, .done-btn, .restore-btn {
       background: #3b82f6;
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
     }
-    .timer {
-      margin-top: 1.5rem;
-      text-align: center;
-      font-size: 1.2rem;
+    .done-btn {
+      background: #10b981;
     }
-    .timer button {
-      margin-top: 0.5rem;
+    .restore-btn {
+      background: #f59e0b;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>디피갤 피출</h1>
+    <h1>디피갤 피출 🎹</h1>
   </header>
   <div class="container">
-    <section>
-      <h2>🎵 연습 리스트</h2>
-      <div class="song-list">
-        <div class="song-item" onclick="startPractice('Hanon 39')">
-          <span class="song-title">Hanon 39</span>
-          <button class="start-btn">연습 시작</button>
-        </div>
-        <div class="song-item" onclick="startPractice('Czerny 54')">
-          <span class="song-title">Czerny 54</span>
-          <button class="start-btn">연습 시작</button>
-        </div>
-      </div>
-    </section>
-    <section class="timer" id="timerSection" style="display:none">
-      <h2 id="currentSong"></h2>
-      <div id="timeDisplay">00:00</div>
-      <button onclick="stopPractice()" class="start-btn">연습 종료</button>
-    </section>
+    <div class="song-form">
+      <input type="text" id="newSong" placeholder="연습할 곡명을 입력하세요 (예: Hanon 39)" />
+      <button onclick="addSong()">추가</button>
+    </div>
+
+    <h2>오늘의 연습 리스트</h2>
+    <div class="song-list" id="todayList"></div>
+
+    <h2 class="small">완료된 곡</h2>
+    <div class="song-list" id="doneList"></div>
   </div>
+
   <script>
-    let timer;
-    let startTime;
+    const todayList = document.getElementById("todayList");
+    const doneList = document.getElementById("doneList");
 
-    function startPractice(song) {
-      document.getElementById('currentSong').innerText = song + ' 연습 중';
-      document.getElementById('timerSection').style.display = 'block';
-      startTime = new Date();
-      timer = setInterval(() => {
-        const now = new Date();
-        const diff = new Date(now - startTime);
-        const min = String(diff.getUTCMinutes()).padStart(2, '0');
-        const sec = String(diff.getUTCSeconds()).padStart(2, '0');
-        document.getElementById('timeDisplay').innerText = `${min}:${sec}`;
-      }, 1000);
+    let songs = JSON.parse(localStorage.getItem("songs") || "[]");
+
+    function saveSongs() {
+      localStorage.setItem("songs", JSON.stringify(songs));
     }
 
-    function stopPractice() {
-      clearInterval(timer);
-      const endTime = new Date();
-      const totalSec = Math.floor((endTime - startTime) / 1000);
-      const minutes = Math.floor(totalSec / 60);
-      const seconds = totalSec % 60;
-      alert(`연습 기록됨: ${minutes}분 ${seconds}초`);
-      document.getElementById('timerSection').style.display = 'none';
+    function addSong() {
+      const title = document.getElementById("newSong").value.trim();
+      if (!title) return;
+      songs.push({ title, done: false });
+      saveSongs();
+      renderSongs();
+      document.getElementById("newSong").value = "";
     }
+
+    function markDone(index) {
+      songs[index].done = true;
+      saveSongs();
+      renderSongs();
+    }
+
+    function restoreSong(index) {
+      songs[index].done = false;
+      saveSongs();
+      renderSongs();
+    }
+
+    function renderSongs() {
+      todayList.innerHTML = "";
+      doneList.innerHTML = "";
+      songs.forEach((song, idx) => {
+        const div = document.createElement("div");
+        div.className = "song-item";
+        div.innerHTML = `<span class="song-title">${song.title}</span>`;
+        const btn = document.createElement("button");
+        if (song.done) {
+          btn.textContent = "복원";
+          btn.className = "restore-btn";
+          btn.onclick = () => restoreSong(idx);
+          div.appendChild(btn);
+          doneList.appendChild(div);
+        } else {
+          btn.textContent = "연습 완료";
+          btn.className = "done-btn";
+          btn.onclick = () => markDone(idx);
+          div.appendChild(btn);
+          todayList.appendChild(div);
+        }
+      });
+    }
+
+    renderSongs();
   </script>
 </body>
 </html>
