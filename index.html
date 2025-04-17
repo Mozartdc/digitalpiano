@@ -3,272 +3,131 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="manifest" href="manifest.json">
-  <title>디피갤 피출</title>
+  <title>디피갤 피출 V3</title>
   <style>
-    body {
-      margin: 0;
-      font-family: 'Noto Sans KR', sans-serif;
-      background-color: #ffffff;
-      color: #222;
-    }
-    header {
-      background-color: #f1f3f5;
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-    }
-    .date-display {
-      font-size: 1rem;
-      text-align: center;
-      margin-top: 0.25rem;
-      color: #555;
-    }
-    main {
-      padding: 1rem;
-    }
-    .button {
-      background-color: #4f46e5;
-      color: white;
-      padding: 0.75rem 1rem;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      cursor: pointer;
-      margin: 0.5rem 0;
-    }
-    .list {
-      margin-top: 1.5rem;
-    }
-    .list-item {
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-    }
-    .record-section {
-      display: none;
-      margin-top: 1.5rem;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    .history-section {
-      margin-top: 2rem;
-    }
-    .history-entry {
-      background-color: #f9fafb;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 0.75rem;
-      margin-bottom: 0.5rem;
-    }
-    .stats-box {
-      background-color: #eef2ff;
-      border: 1px solid #c7d2fe;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      margin-top: 1rem;
-      font-size: 1rem;
-    }
-    .input-group {
-      display: flex;
-      margin-top: 1.5rem;
-      gap: 0.5rem;
-    }
-    .input-group input {
-      flex: 1;
-      padding: 0.5rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .todo-item.done {
-      text-decoration: line-through;
-      color: #aaa;
-    }
+    body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
+    header { background: #f3f4f6; padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: bold; }
+    .date { font-size: 1rem; color: #666; margin-top: 0.25rem; }
+    main { padding: 1rem; }
+    .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+    .card { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: #f9fafb; }
+    .card.done { opacity: 0.5; text-decoration: line-through; }
+    .card-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .inline { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+    input, textarea { width: 100%; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; margin-top: 0.25rem; }
+    .sub { font-size: 0.9rem; color: #666; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
   <header>
     디피갤 피출
-    <div class="date-display" id="todayDate"></div>
+    <div class="date" id="today"></div>
   </header>
   <main>
-    <button class="button" id="timerBtn" onclick="toggleTimer()">🎵 연습 시작 (타이머)</button>
-    <div id="timerDisplay" style="font-size:1.2rem; text-align:center; margin-top:0.5rem; display:none;">00:00</div>
-
-    <div class="stats-box" id="statsBox"></div>
-
-    <div class="input-group">
-      <input type="text" id="newPieceInput" placeholder="새 연습곡 입력 (예: Czerny 30)" />
-      <button class="button" onclick="addNewPiece()">추가</button>
+    <div class="inline">
+      <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)" />
+      <button class="button" onclick="addPiece()">추가</button>
     </div>
-
-    <div class="list" id="todoList"></div>
-
-    <div class="record-section" id="recordSection">
-      <h3 id="recordTitle">기록 입력</h3>
-      <label>연습 시간 (분)</label>
-      <input type="number" id="practiceTime" placeholder="예: 30">
-      <label>메모</label>
-      <textarea id="practiceNote" rows="3" placeholder="연습 중 느낀 점을 적어보세요"></textarea>
-      <label>링크</label>
-      <input type="url" id="practiceLink" placeholder="유튜브 링크 등">
-      <button class="button" onclick="saveRecord()">저장</button>
-    </div>
-
-    <div class="history-section" id="historySection">
-      <h3>📜 연습 히스토리</h3>
-      <div id="historyList"></div>
-    </div>
+    <div id="pieceList"></div>
   </main>
-
   <script>
-    let currentPiece = '';
-    let timer = null;
-    let startTime = null;
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
-    function toggleTimer() {
-      const btn = document.getElementById('timerBtn');
-      const display = document.getElementById('timerDisplay');
-      if (!timer) {
-        startTime = new Date();
-        display.style.display = 'block';
-        timer = setInterval(() => {
-          const now = new Date();
-          const diff = Math.floor((now - startTime) / 1000);
-          const min = String(Math.floor(diff / 60)).padStart(2, '0');
-          const sec = String(diff % 60).padStart(2, '0');
-          display.textContent = `${min}:${sec}`;
-        }, 1000);
-        btn.textContent = '⏹ 연습 종료';
-      } else {
-        clearInterval(timer);
-        const now = new Date();
-        const diffMin = Math.round((now - startTime) / 1000 / 60);
-        document.getElementById('practiceTime').value = diffMin;
-        btn.textContent = '🎵 연습 시작 (타이머)';
-        display.style.display = 'none';
-        display.textContent = '00:00';
-        timer = null;
-        startTime = null;
-        document.getElementById('recordTitle').innerText = `[${currentPiece}] 연습 기록 입력`;
-        document.getElementById('recordSection').style.display = 'block';
-      }
+    let pieces = JSON.parse(localStorage.getItem('pieces') || '[]');
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+
+    function saveAll() {
+      localStorage.setItem('pieces', JSON.stringify(pieces));
+      localStorage.setItem('records', JSON.stringify(records));
     }
 
-    function addNewPiece() {
-      const input = document.getElementById('newPieceInput');
-      const name = input.value.trim();
+    function addPiece() {
+      const name = document.getElementById('newPiece').value.trim();
       if (!name) return;
-      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
-      todo.push({ name, done: false });
-      localStorage.setItem('practiceTodos', JSON.stringify(todo));
-      input.value = '';
-      renderTodo();
+      pieces.push({ name, active: true });
+      document.getElementById('newPiece').value = '';
+      saveAll();
+      renderPieces();
     }
 
-    function markDone(index) {
-      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
-      todo[index].done = true;
-      localStorage.setItem('practiceTodos', JSON.stringify(todo));
-      renderTodo();
-    }
-
-    function renderTodo() {
-      const list = document.getElementById('todoList');
-      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
-      list.innerHTML = '';
-      todo.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'list-item' + (item.done ? ' done' : '');
-        div.innerHTML = `
-          <span class="todo-item${item.done ? ' done' : ''}">${item.name}</span>
-          <button class="button" onclick="${item.done ? '' : `markDone(${idx})`}">${item.done ? '완료됨' : '✔ 끝내기'}</button>`;
-        list.appendChild(div);
-      });
-    }
-
-    function openRecord(title) {
-      currentPiece = title;
-      document.getElementById('recordTitle').innerText = `[${title}] 연습 기록 입력`;
-      document.getElementById('recordSection').style.display = 'block';
-    }
-
-    function saveRecord() {
-      const time = parseInt(document.getElementById('practiceTime').value);
-      const note = document.getElementById('practiceNote').value;
-      const link = document.getElementById('practiceLink').value;
-      const date = new Date().toISOString().split('T')[0];
-
-      const record = {
-        piece: currentPiece,
-        date,
-        time,
-        note,
-        link
-      };
-
-      const logs = JSON.parse(localStorage.getItem('practiceLogs') || '[]');
-      logs.push(record);
-      localStorage.setItem('practiceLogs', JSON.stringify(logs));
-
-      alert(`저장 완료!\n\n곡: ${currentPiece}\n시간: ${time}분\n날짜: ${date}`);
-
-      document.getElementById('practiceTime').value = '';
-      document.getElementById('practiceNote').value = '';
-      document.getElementById('practiceLink').value = '';
-      document.getElementById('recordSection').style.display = 'none';
-
-      renderHistory();
-      renderStats();
-    }
-
-    function renderHistory() {
-      const logs = JSON.parse(localStorage.getItem('practiceLogs') || '[]');
-      const container = document.getElementById('historyList');
+    function renderPieces() {
+      const container = document.getElementById('pieceList');
       container.innerHTML = '';
-      logs.slice().reverse().forEach(log => {
+      pieces.forEach((piece, idx) => {
+        if (!piece.active) return;
+
+        const todayRecord = records.find(r => r.date === todayStr && r.name === piece.name) || { time: 0, count: 0 };
+
         const div = document.createElement('div');
-        div.className = 'history-entry';
-        div.innerHTML = `<strong>${log.date}</strong> · <em>${log.piece}</em><br>⏱ ${log.time}분<br>${log.note}<br><a href="${log.link}" target="_blank">${log.link}</a>`;
+        div.className = 'card';
+
+        div.innerHTML = `
+          <div class="card-title">${piece.name}</div>
+          <div class="sub">⏱ ${todayRecord.time || 0}분 | 🧾 ${todayRecord.count || 0}회</div>
+
+          <div class="inline">
+            <button class="button" onclick="startTimer(${idx})">⏱ 타이머</button>
+            <button class="button" onclick="changeCount(${idx}, 1)">+1회</button>
+            <button class="button" onclick="changeCount(${idx}, -1)">-1회</button>
+          </div>
+          <textarea placeholder="메모 입력" id="note-${idx}"></textarea>
+          <input type="url" placeholder="링크 (유튜브 등)" id="link-${idx}" />
+          <div class="inline">
+            <label><input type="checkbox" id="repeat-${idx}" checked /> 내일도 계속하기</label>
+            <button class="button" onclick="finishPractice(${idx})">저장</button>
+          </div>
+        `;
         container.appendChild(div);
       });
     }
 
-    function renderStats() {
-      const logs = JSON.parse(localStorage.getItem('practiceLogs') || '[]');
-      let totalTime = 0;
-      logs.forEach(log => {
-        totalTime += parseInt(log.time || 0);
-      });
-      const statsBox = document.getElementById('statsBox');
-      statsBox.innerText = `⏱ 총 연습 시간: ${totalTime}분 | 🧾 총 연습 횟수: ${logs.length}회`;
+    function startTimer(idx) {
+      const start = Date.now();
+      alert("타이머 시작됨. 끝나면 OK 누르세요.");
+      const end = Date.now();
+      const diffMin = Math.round((end - start) / 1000 / 60);
+      updateTime(idx, diffMin);
     }
 
-    function showTodayDate() {
-      const today = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      document.getElementById('todayDate').innerText = today.toLocaleDateString('ko-KR', options);
+    function updateTime(idx, min) {
+      const name = pieces[idx].name;
+      let rec = records.find(r => r.date === todayStr && r.name === name);
+      if (!rec) {
+        rec = { date: todayStr, name, time: 0, count: 0 };
+        records.push(rec);
+      }
+      rec.time += min;
+      saveAll();
+      renderPieces();
     }
 
-    showTodayDate();
-    renderTodo();
-    renderHistory();
-    renderStats();
+    function changeCount(idx, delta) {
+      const name = pieces[idx].name;
+      let rec = records.find(r => r.date === todayStr && r.name === name);
+      if (!rec) {
+        rec = { date: todayStr, name, time: 0, count: 0 };
+        records.push(rec);
+      }
+      rec.count += delta;
+      if (rec.count < 0) rec.count = 0;
+      saveAll();
+      renderPieces();
+    }
+
+    function finishPractice(idx) {
+      const note = document.getElementById(`note-${idx}`).value;
+      const link = document.getElementById(`link-${idx}`).value;
+      const keep = document.getElementById(`repeat-${idx}`).checked;
+      if (!keep) pieces[idx].active = false;
+      alert("연습 저장됨! 메모와 링크는 기록됨 (console 확인용).");
+      console.log("메모:", note);
+      console.log("링크:", link);
+      saveAll();
+      renderPieces();
+    }
+
+    renderPieces();
   </script>
 </body>
 </html>
