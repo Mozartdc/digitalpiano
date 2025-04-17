@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#ffffff" />
-  <link rel="manifest" href="manifest.json" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
   <title>디피갤 피출</title>
   <style>
     body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
@@ -28,7 +28,8 @@
     .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
     input[type='text'] { flex: 1; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
     .session-timer { margin: 1rem 0; text-align: center; font-size: 1.2rem; color: #4f46e5; }
-    #editModal input { margin-top: 0.25rem; }
+    .time-select { margin: 0.5rem auto; text-align: center; }
+    .time-select input { padding: 0.5rem; font-size: 1rem; }
   </style>
 </head>
 <body>
@@ -51,6 +52,9 @@
     <div id="logView">
       <div class="session-timer">
         ⏱ 오늘 총 연습 시간: <span id="sessionTime">0분 0초</span>
+        <div class="time-select">
+          시작 시각: <input type="time" id="startPicker"> 종료 시각: <input type="time" id="endPicker" style="display:none">
+        </div>
         <button class="button" onclick="toggleSessionTimer()" id="sessionBtn">시작</button>
       </div>
       <div class="input-group">
@@ -63,23 +67,6 @@
       <div class="stats-table" id="statsTable"></div>
     </div>
   </main>
-
-  <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
-    <div style="background:white; padding:1rem; border-radius:12px; width:90%; max-width:400px; text-align:center;">
-      <h3>세션 시간 수정</h3>
-      <div style="margin:1rem 0">
-        <label>시작 시간 (예: 09:30)</label><br/>
-        <input type="time" id="manualStart" style="padding:0.5rem; font-size:1rem; width:70%" />
-      </div>
-      <div style="margin:1rem 0">
-        <label>총 연습 시간 (분)</label><br/>
-        <input type="number" id="manualMinutes" style="padding:0.5rem; font-size:1rem; width:70%" min="1" />
-      </div>
-      <button class="button" onclick="applyManualTime()">저장</button>
-      <button class="button" style="background:#aaa; margin-left:0.5rem" onclick="closeEditModal()">취소</button>
-    </div>
-  </div>
-
   <script>
     let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
     let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
@@ -91,22 +78,34 @@
       year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
     });
 
-    function saveAll() {
-      localStorage.setItem('piecesV4', JSON.stringify(pieces));
-      localStorage.setItem('recordsV4', JSON.stringify(records));
-      localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
-    }
-
     function formatTime(mins) {
       const min = Math.floor(mins);
       const sec = Math.round((mins - min) * 60);
       return `${min}분 ${sec}초`;
     }
 
+    function saveAll() {
+      localStorage.setItem('piecesV4', JSON.stringify(pieces));
+      localStorage.setItem('recordsV4', JSON.stringify(records));
+      localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
+    }
+
     function toggleSessionTimer() {
       const btn = document.getElementById('sessionBtn');
+      const startInput = document.getElementById('startPicker');
+      const endInput = document.getElementById('endPicker');
       if (!sessionTimer) {
-        sessionStart = Date.now();
+        let selected = startInput.value;
+        if (selected) {
+          const today = new Date();
+          const [h, m] = selected.split(":");
+          today.setHours(parseInt(h));
+          today.setMinutes(parseInt(m));
+          today.setSeconds(0);
+          sessionStart = today.getTime();
+        } else {
+          sessionStart = Date.now();
+        }
         sessionTimer = setInterval(() => {
           const now = Date.now();
           const totalSec = Math.floor((now - sessionStart) / 1000);
@@ -114,42 +113,39 @@
           document.getElementById('sessionTime').textContent = formatTime(totalMins);
         }, 1000);
         btn.textContent = '종료';
+        endInput.style.display = 'inline-block';
       } else {
+        let endTime = Date.now();
+        if (endInput.value) {
+          const today = new Date();
+          const [h, m] = endInput.value.split(":");
+          today.setHours(parseInt(h));
+          today.setMinutes(parseInt(m));
+          today.setSeconds(0);
+          endTime = today.getTime();
+        }
         clearInterval(sessionTimer);
-        const now = Date.now();
-        const diffSec = Math.floor((now - sessionStart) / 1000);
-        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diffSec / 60;
+        const diffSec = Math.floor((endTime - sessionStart) / 1000);
+        if (diffSec > 0) {
+          sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diffSec / 60;
+        }
         sessionTimer = null;
         sessionStart = null;
         btn.textContent = '시작';
+        endInput.style.display = 'none';
         document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr]);
         saveAll();
-        openEditModal();
       }
     }
 
-    function openEditModal() {
-      document.getElementById('editModal').style.display = 'flex';
-      document.getElementById('manualStart').value = new Date().toISOString().substring(11, 16);
-      document.getElementById('manualMinutes').value = Math.round(sessionTime[todayStr] || 0);
+    function addPiece() {
+      const input = document.getElementById('newPiece');
+      const name = input.value.trim();
+      if (!name) return;
+      pieces.push({ name, emoji: '🎹', active: true });
+      input.value = '';
+      saveAll();
     }
-
-    function closeEditModal() {
-      document.getElementById('editModal').style.display = 'none';
-    }
-
-    function applyManualTime() {
-      const mins = parseInt(document.getElementById('manualMinutes').value || '0');
-      if (mins > 0) {
-        sessionTime[todayStr] = mins;
-        saveAll();
-        document.getElementById('sessionTime').textContent = formatTime(mins);
-      }
-      closeEditModal();
-    }
-
-    renderPieces();
-    document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
   </script>
 </body>
 </html>
