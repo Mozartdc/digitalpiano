@@ -83,7 +83,8 @@
     <div class="date-display" id="todayDate"></div>
   </header>
   <main>
-    <button class="button" onclick="startPractice()">🎵 연습 시작 (타이머)</button>
+    <button class="button" id="timerBtn" onclick="toggleTimer()">🎵 연습 시작 (타이머)</button>
+    <div id="timerDisplay" style="font-size:1.2rem; text-align:center; margin-top:0.5rem; display:none;">00:00</div>
 
     <div class="list">
       <div class="list-item" onclick="openRecord('Hanon 39')">
@@ -116,6 +117,36 @@
 
   <script>
     let currentPiece = '';
+    let timer = null;
+    let startTime = null;
+
+    function toggleTimer() {
+      const btn = document.getElementById('timerBtn');
+      const display = document.getElementById('timerDisplay');
+      if (!timer) {
+        startTime = new Date();
+        display.style.display = 'block';
+        timer = setInterval(() => {
+          const now = new Date();
+          const diff = Math.floor((now - startTime) / 1000);
+          const min = String(Math.floor(diff / 60)).padStart(2, '0');
+          const sec = String(diff % 60).padStart(2, '0');
+          display.textContent = `${min}:${sec}`;
+        }, 1000);
+        btn.textContent = '⏹ 연습 종료';
+      } else {
+        clearInterval(timer);
+        const now = new Date();
+        const diffMin = Math.round((now - startTime) / 1000 / 60);
+        document.getElementById('practiceTime').value = diffMin;
+        btn.textContent = '🎵 연습 시작 (타이머)';
+        display.style.display = 'none';
+        display.textContent = '00:00';
+        timer = null;
+        startTime = null;
+        document.getElementById('recordSection').style.display = 'block';
+      }
+    }
 
     function openRecord(title) {
       currentPiece = title;
@@ -149,10 +180,6 @@
       document.getElementById('recordSection').style.display = 'none';
 
       renderHistory();
-    }
-
-    function startPractice() {
-      alert("타이머 기능은 다음 단계에서 구현됩니다!");
     }
 
     function renderHistory() {
