@@ -75,6 +75,30 @@
       padding: 0.75rem;
       margin-bottom: 0.5rem;
     }
+    .stats-box {
+      background-color: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+    .input-group {
+      display: flex;
+      margin-top: 1.5rem;
+      gap: 0.5rem;
+    }
+    .input-group input {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .todo-item.done {
+      text-decoration: line-through;
+      color: #aaa;
+    }
   </style>
 </head>
 <body>
@@ -86,26 +110,23 @@
     <button class="button" id="timerBtn" onclick="toggleTimer()">🎵 연습 시작 (타이머)</button>
     <div id="timerDisplay" style="font-size:1.2rem; text-align:center; margin-top:0.5rem; display:none;">00:00</div>
 
-    <div class="list">
-      <div class="list-item" onclick="openRecord('Hanon 39')">
-        Hanon 39 <span>▶</span>
-      </div>
-      <div class="list-item" onclick="openRecord('Czerny 54')">
-        Czerny 54 <span>▶</span>
-      </div>
+    <div class="stats-box" id="statsBox"></div>
+
+    <div class="input-group">
+      <input type="text" id="newPieceInput" placeholder="새 연습곡 입력 (예: Czerny 30)" />
+      <button class="button" onclick="addNewPiece()">추가</button>
     </div>
+
+    <div class="list" id="todoList"></div>
 
     <div class="record-section" id="recordSection">
       <h3 id="recordTitle">기록 입력</h3>
       <label>연습 시간 (분)</label>
       <input type="number" id="practiceTime" placeholder="예: 30">
-
       <label>메모</label>
       <textarea id="practiceNote" rows="3" placeholder="연습 중 느낀 점을 적어보세요"></textarea>
-
       <label>링크</label>
       <input type="url" id="practiceLink" placeholder="유튜브 링크 등">
-
       <button class="button" onclick="saveRecord()">저장</button>
     </div>
 
@@ -144,18 +165,51 @@
         display.textContent = '00:00';
         timer = null;
         startTime = null;
+        document.getElementById('recordTitle').innerText = `[${currentPiece}] 연습 기록 입력`;
         document.getElementById('recordSection').style.display = 'block';
       }
     }
 
+    function addNewPiece() {
+      const input = document.getElementById('newPieceInput');
+      const name = input.value.trim();
+      if (!name) return;
+      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
+      todo.push({ name, done: false });
+      localStorage.setItem('practiceTodos', JSON.stringify(todo));
+      input.value = '';
+      renderTodo();
+    }
+
+    function markDone(index) {
+      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
+      todo[index].done = true;
+      localStorage.setItem('practiceTodos', JSON.stringify(todo));
+      renderTodo();
+    }
+
+    function renderTodo() {
+      const list = document.getElementById('todoList');
+      const todo = JSON.parse(localStorage.getItem('practiceTodos') || '[]');
+      list.innerHTML = '';
+      todo.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'list-item' + (item.done ? ' done' : '');
+        div.innerHTML = `
+          <span class="todo-item${item.done ? ' done' : ''}">${item.name}</span>
+          <button class="button" onclick="${item.done ? '' : `markDone(${idx})`}">${item.done ? '완료됨' : '✔ 끝내기'}</button>`;
+        list.appendChild(div);
+      });
+    }
+
     function openRecord(title) {
       currentPiece = title;
-      document.getElementById('recordSection').style.display = 'block';
       document.getElementById('recordTitle').innerText = `[${title}] 연습 기록 입력`;
+      document.getElementById('recordSection').style.display = 'block';
     }
 
     function saveRecord() {
-      const time = document.getElementById('practiceTime').value;
+      const time = parseInt(document.getElementById('practiceTime').value);
       const note = document.getElementById('practiceNote').value;
       const link = document.getElementById('practiceLink').value;
       const date = new Date().toISOString().split('T')[0];
@@ -180,6 +234,7 @@
       document.getElementById('recordSection').style.display = 'none';
 
       renderHistory();
+      renderStats();
     }
 
     function renderHistory() {
@@ -194,6 +249,16 @@
       });
     }
 
+    function renderStats() {
+      const logs = JSON.parse(localStorage.getItem('practiceLogs') || '[]');
+      let totalTime = 0;
+      logs.forEach(log => {
+        totalTime += parseInt(log.time || 0);
+      });
+      const statsBox = document.getElementById('statsBox');
+      statsBox.innerText = `⏱ 총 연습 시간: ${totalTime}분 | 🧾 총 연습 횟수: ${logs.length}회`;
+    }
+
     function showTodayDate() {
       const today = new Date();
       const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
@@ -201,7 +266,9 @@
     }
 
     showTodayDate();
+    renderTodo();
     renderHistory();
+    renderStats();
   </script>
 </body>
 </html>
