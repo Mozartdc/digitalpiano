@@ -90,17 +90,16 @@
         sessionStart = Date.now();
         sessionTimer = setInterval(() => {
           const now = Date.now();
-          const total = (sessionTime[todayStr] || 0) * 60 + Math.floor((now - sessionStart) / 1000);
-          const min = Math.floor(total / 60);
-          const sec = total % 60;
-          document.getElementById('sessionTime').textContent = `${min}분 ${sec}초`;
+          const totalSec = Math.floor((now - sessionStart) / 1000);
+          const totalMins = (sessionTime[todayStr] || 0) + totalSec / 60;
+          document.getElementById('sessionTime').textContent = formatTime(totalMins);
         }, 1000);
         btn.textContent = '종료';
       } else {
         clearInterval(sessionTimer);
         const now = Date.now();
-        const diff = Math.round((now - sessionStart) / 1000 / 60);
-        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diff;
+        const diffSec = Math.floor((now - sessionStart) / 1000);
+        sessionTime[todayStr] = (sessionTime[todayStr] || 0) + diffSec / 60;
         sessionTimer = null;
         sessionStart = null;
         btn.textContent = '시작';
@@ -136,9 +135,43 @@
           </div>
           <div class="stats">${r.count}회</div>
         `;
+        row.onclick = () => toggleDetails(idx, wrapper);
         wrapper.appendChild(row);
         box.appendChild(wrapper);
       });
+    }
+
+    function toggleDetails(idx, wrapper) {
+      const old = wrapper.querySelector('.details');
+      if (old) return old.remove();
+      const name = pieces[idx].name;
+      let rec = records.find(r => r.date === todayStr && r.name === name);
+      if (!rec) {
+        rec = { date: todayStr, name, checked: false, count: 0, note: '', link: '' };
+        records.push(rec);
+      }
+      const box = document.createElement('div');
+      box.className = 'details';
+      box.innerHTML = `
+        <div><strong>${name}</strong> 상세 입력</div>
+        <div style="margin: 0.5rem 0">
+          <button class="button" onclick="changeCount(${idx}, 1)">+1회</button>
+          <button class="button" onclick="changeCount(${idx}, -1)">-1회</button>
+        </div>
+        <textarea id="note-${idx}" placeholder="메모 입력">${rec.note || ''}</textarea>
+        <input type="url" id="link-${idx}" placeholder="링크 (유튜브 등)" value="${rec.link || ''}" />
+      `;
+      wrapper.appendChild(box);
+    }
+
+    function changeCount(idx, delta) {
+      const name = pieces[idx].name;
+      const rec = records.find(r => r.date === todayStr && r.name === name);
+      if (!rec) return;
+      rec.count += delta;
+      if (rec.count < 0) rec.count = 0;
+      saveAll();
+      renderPieces();
     }
 
     function toggleCheck(idx) {
