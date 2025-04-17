@@ -1,162 +1,113 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
   <title>디피갤 피출</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
-      background-color: #f9f9f9;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #ffffff;
       color: #222;
     }
     header {
-      background-color: #ffffff;
+      background-color: #f1f3f5;
       padding: 1rem;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    h1 {
+      text-align: center;
       font-size: 1.5rem;
-      margin: 0;
+      font-weight: bold;
     }
-    .container {
+    main {
       padding: 1rem;
     }
-    .song-form {
-      display: flex;
-      margin-bottom: 1rem;
-    }
-    .song-form input {
-      flex: 1;
-      padding: 0.5rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    .song-form button {
-      margin-left: 0.5rem;
-      padding: 0.5rem 1rem;
-      background-color: #3b82f6;
+    .button {
+      background-color: #4f46e5;
       color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 1rem;
-    }
-    .song-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .song-item {
-      background: #fff;
       padding: 0.75rem 1rem;
+      border: none;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 0.5rem 0;
+    }
+    .list {
+      margin-top: 1.5rem;
+    }
+    .list-item {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .song-title {
+    .record-section {
+      display: none;
+      margin-top: 1.5rem;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
       font-size: 1rem;
-    }
-    .small {
-      font-size: 0.8rem;
-      color: #888;
-    }
-    .start-btn, .done-btn, .restore-btn {
-      background: #3b82f6;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 0.4rem 0.8rem;
-      font-size: 0.9rem;
-    }
-    .done-btn {
-      background: #10b981;
-    }
-    .restore-btn {
-      background: #f59e0b;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>디피갤 피출 🎹</h1>
-  </header>
-  <div class="container">
-    <div class="song-form">
-      <input type="text" id="newSong" placeholder="연습할 곡명을 입력하세요 (예: Hanon 39)" />
-      <button onclick="addSong()">추가</button>
+  <header>디피갤 피출</header>
+  <main>
+    <button class="button" onclick="startPractice()">🎵 연습 시작 (타이머)</button>
+
+    <div class="list">
+      <div class="list-item" onclick="openRecord('Hanon 39')">
+        Hanon 39 <span>▶</span>
+      </div>
+      <div class="list-item" onclick="openRecord('Czerny 54')">
+        Czerny 54 <span>▶</span>
+      </div>
     </div>
 
-    <h2>오늘의 연습 리스트</h2>
-    <div class="song-list" id="todayList"></div>
+    <div class="record-section" id="recordSection">
+      <h3 id="recordTitle">기록 입력</h3>
+      <label>연습 시간 (분)</label>
+      <input type="number" id="practiceTime" placeholder="예: 30">
 
-    <h2 class="small">완료된 곡</h2>
-    <div class="song-list" id="doneList"></div>
-  </div>
+      <label>메모</label>
+      <textarea id="practiceNote" rows="3" placeholder="연습 중 느낀 점을 적어보세요"></textarea>
+
+      <label>링크</label>
+      <input type="url" id="practiceLink" placeholder="유튜브 링크 등">
+
+      <button class="button" onclick="saveRecord()">저장</button>
+    </div>
+  </main>
 
   <script>
-    const todayList = document.getElementById("todayList");
-    const doneList = document.getElementById("doneList");
+    let currentPiece = '';
 
-    let songs = JSON.parse(localStorage.getItem("songs") || "[]");
-
-    function saveSongs() {
-      localStorage.setItem("songs", JSON.stringify(songs));
+    function openRecord(title) {
+      currentPiece = title;
+      document.getElementById('recordSection').style.display = 'block';
+      document.getElementById('recordTitle').innerText = `[${title}] 연습 기록 입력`;
     }
 
-    function addSong() {
-      const title = document.getElementById("newSong").value.trim();
-      if (!title) return;
-      songs.push({ title, done: false });
-      saveSongs();
-      renderSongs();
-      document.getElementById("newSong").value = "";
+    function saveRecord() {
+      const time = document.getElementById('practiceTime').value;
+      const note = document.getElementById('practiceNote').value;
+      const link = document.getElementById('practiceLink').value;
+      alert(`곡: ${currentPiece}\n시간: ${time}분\n메모: ${note}\n링크: ${link}`);
     }
 
-    function markDone(index) {
-      songs[index].done = true;
-      saveSongs();
-      renderSongs();
+    function startPractice() {
+      alert("타이머 기능은 다음 단계에서 구현됩니다!");
     }
-
-    function restoreSong(index) {
-      songs[index].done = false;
-      saveSongs();
-      renderSongs();
-    }
-
-    function renderSongs() {
-      todayList.innerHTML = "";
-      doneList.innerHTML = "";
-      songs.forEach((song, idx) => {
-        const div = document.createElement("div");
-        div.className = "song-item";
-        div.innerHTML = `<span class="song-title">${song.title}</span>`;
-        const btn = document.createElement("button");
-        if (song.done) {
-          btn.textContent = "복원";
-          btn.className = "restore-btn";
-          btn.onclick = () => restoreSong(idx);
-          div.appendChild(btn);
-          doneList.appendChild(div);
-        } else {
-          btn.textContent = "연습 완료";
-          btn.className = "done-btn";
-          btn.onclick = () => markDone(idx);
-          div.appendChild(btn);
-          todayList.appendChild(div);
-        }
-      });
-    }
-
-    renderSongs();
   </script>
 </body>
 </html>
