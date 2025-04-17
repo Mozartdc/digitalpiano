@@ -11,13 +11,14 @@
     header { text-align: center; margin-bottom: 1rem; }
     h1 { margin: 0.5rem 0; }
     .date { font-size: 0.9rem; color: #666; }
-    .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; margin-top: 0.5rem; }
+    .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; margin: 0.25rem; }
     .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
     input[type='text'] { flex: 1; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
     .card { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; border-radius: 0.5rem; }
     .card h3 { margin: 0; cursor: pointer; font-size: 1.1rem; }
     .history { margin-top: 0.5rem; padding-left: 1rem; font-size: 0.9rem; color: #555; display: none; }
-    .checkbox-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .checkbox-wrap { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+    .utility { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
@@ -25,6 +26,12 @@
     <h1>디피갤 피출</h1>
     <div class="date" id="today"></div>
   </header>
+
+  <div class="utility">
+    <button class="button" onclick="exportCSV()">⬇️ 내보내기</button>
+    <label class="button">⬆️ 불러오기<input type="file" accept=".csv" onchange="importCSV(event)" style="display:none"></label>
+    <button class="button" onclick="resetAll()">🧼 초기화</button>
+  </div>
 
   <div class="input-group">
     <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)">
@@ -45,6 +52,44 @@
     function saveAll() {
       localStorage.setItem('piecesV4', JSON.stringify(pieces));
       localStorage.setItem('recordsV4', JSON.stringify(records));
+    }
+
+    function exportCSV() {
+      const all = JSON.stringify({ pieces, records });
+      const blob = new Blob([all], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'practice-log.json';
+      a.click();
+    }
+
+    function importCSV(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          if (parsed.pieces && parsed.records) {
+            pieces = parsed.pieces;
+            records = parsed.records;
+            saveAll();
+            renderPieces();
+          }
+        } catch (err) {
+          alert('불러오기 실패');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetAll() {
+      if (confirm('모든 데이터를 초기화할까요?')) {
+        pieces = [];
+        records.length = 0;
+        saveAll();
+        renderPieces();
+      }
     }
 
     function addPiece() {
