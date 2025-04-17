@@ -1,0 +1,120 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>디피갤 피출</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR", sans-serif;
+      background-color: #f9f9f9;
+      color: #222;
+    }
+    header {
+      background-color: #ffffff;
+      padding: 1rem;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    h1 {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+    .container {
+      padding: 1rem;
+    }
+    .song-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .song-item {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .song-title {
+      font-size: 1rem;
+    }
+    .start-btn {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    .timer {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+    .timer button {
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>디피갤 피출</h1>
+  </header>
+  <div class="container">
+    <section>
+      <h2>🎵 연습 리스트</h2>
+      <div class="song-list">
+        <div class="song-item" onclick="startPractice('Hanon 39')">
+          <span class="song-title">Hanon 39</span>
+          <button class="start-btn">연습 시작</button>
+        </div>
+        <div class="song-item" onclick="startPractice('Czerny 54')">
+          <span class="song-title">Czerny 54</span>
+          <button class="start-btn">연습 시작</button>
+        </div>
+      </div>
+    </section>
+    <section class="timer" id="timerSection" style="display:none">
+      <h2 id="currentSong"></h2>
+      <div id="timeDisplay">00:00</div>
+      <button onclick="stopPractice()" class="start-btn">연습 종료</button>
+    </section>
+  </div>
+  <script>
+    let timer;
+    let startTime;
+
+    function startPractice(song) {
+      document.getElementById('currentSong').innerText = song + ' 연습 중';
+      document.getElementById('timerSection').style.display = 'block';
+      startTime = new Date();
+      timer = setInterval(() => {
+        const now = new Date();
+        const diff = new Date(now - startTime);
+        const min = String(diff.getUTCMinutes()).padStart(2, '0');
+        const sec = String(diff.getUTCSeconds()).padStart(2, '0');
+        document.getElementById('timeDisplay').innerText = `${min}:${sec}`;
+      }, 1000);
+    }
+
+    function stopPractice() {
+      clearInterval(timer);
+      const endTime = new Date();
+      const totalSec = Math.floor((endTime - startTime) / 1000);
+      const minutes = Math.floor(totalSec / 60);
+      const seconds = totalSec % 60;
+      alert(`연습 기록됨: ${minutes}분 ${seconds}초`);
+      document.getElementById('timerSection').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
