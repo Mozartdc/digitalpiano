@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="manifest.json" />
-  <title>디피갤 피출 V6</title>
+  <title>디피갤 피출 V7.1</title>
   <style>
     body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
     header { background: #f3f4f6; padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: bold; }
@@ -25,6 +25,9 @@
     .stats-table { margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
     .stats-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #eee; }
     .utility { margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input[type='text'] { flex: 1; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
+    .session-timer { margin: 1rem 0; text-align: center; font-size: 1.2rem; color: #4f46e5; }
   </style>
 </head>
 <body>
@@ -43,57 +46,24 @@
       <label class="button">
         ⬆️ 불러오기 <input type="file" accept=".csv" onchange="importCSV(event)" style="display:none">
       </label>
+      <button class="button" onclick="resetAll()">🧼 초기화</button>
     </div>
 
     <div id="logView">
-      <!-- 기존 기록 UI 유지 -->
+      <div class="session-timer">
+        ⏱ 오늘 총 연습 시간: <span id="sessionTime">0분 0초</span>
+        <button class="button" onclick="toggleSessionTimer()" id="sessionBtn">시작</button>
+      </div>
+      <div class="input-group">
+        <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)" />
+        <button class="button" onclick="addPiece()">추가</button>
+      </div>
+      <div id="pieceList"></div>
     </div>
 
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
     </div>
   </main>
-
-  <script>
-    // 기존 코드 유지 (생략)
-
-    function exportCSV() {
-      const csv = ["날짜,곡명,횟수,메모,링크"];
-      records.forEach(r => {
-        csv.push(`${r.date},${r.name},${r.count || 0},"${(r.note || '').replace(/"/g, '""')}",${r.link || ''}`);
-      });
-      const blob = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "practice_log.csv";
-      link.click();
-    }
-
-    function importCSV(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const lines = e.target.result.split("\n").slice(1);
-        lines.forEach(line => {
-          const [date, name, count, note, link] = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(s => s.replace(/^"|"$/g, ''));
-          if (!date || !name) return;
-          const rec = records.find(r => r.date === date && r.name === name);
-          if (rec) {
-            rec.count = parseInt(count || 0);
-            rec.note = note;
-            rec.link = link;
-          } else {
-            records.push({ date, name, count: parseInt(count || 0), note, link });
-          }
-        });
-        saveAll();
-        alert("불러오기 완료!");
-        renderStats();
-        renderPieces();
-      };
-      reader.readAsText(file);
-    }
-  </script>
 </body>
 </html>
