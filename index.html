@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script>
+    const pw = prompt("비밀번호를 입력하세요");
+    if (pw !== "1212") {
+      document.body.innerHTML = "<h1 style='text-align:center;margin-top:3rem;'>⛔ 접근이 제한되었습니다.</h1>";
+      throw new Error("Unauthorized");
+    }
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#ffffff">
