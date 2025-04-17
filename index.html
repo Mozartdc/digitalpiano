@@ -1,4 +1,86 @@
-<script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="manifest" href="manifest.json" />
+  <title>디피갤 피출</title>
+  <style>
+    body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
+    header { background: #f3f4f6; padding: 1rem; text-align: center; font-size: 1.5rem; font-weight: bold; }
+    .date { font-size: 1rem; color: #666; margin-top: 0.25rem; }
+    main { padding: 1rem; }
+    .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+    .tab { display: flex; gap: 1rem; margin: 1rem 0; }
+    .tab button { flex: 1; background: #e0e7ff; border: none; padding: 0.5rem; border-radius: 6px; font-weight: bold; }
+    .tab button.active { background: #4f46e5; color: white; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 12px; padding: 0.75rem 1rem; margin: 0.5rem 0; cursor: pointer; }
+    .card-left { display: flex; align-items: center; gap: 0.5rem; }
+    .emoji { font-size: 1.2rem; }
+    .piece-title { font-weight: bold; font-size: 1rem; }
+    .stats { font-size: 1rem; color: #333; }
+    .details { padding: 1rem; border-left: 4px solid #4f46e5; margin: 0.5rem 0 1rem 0; background: #f1f5ff; border-radius: 0 0 8px 8px; }
+    .details textarea, .details input { width: 100%; margin-top: 0.5rem; padding: 0.5rem; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; }
+    .stats-table { margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+    .stats-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed #eee; }
+    .utility { margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input[type='text'] { flex: 1; padding: 0.5rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
+    .session-timer { margin: 1rem 0; text-align: center; font-size: 1.2rem; color: #4f46e5; }
+    #editModal input { margin-top: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    디피갤 피출
+    <div class="date" id="today"></div>
+  </header>
+  <main>
+    <div class="tab">
+      <button class="active" onclick="showView('log')">기록</button>
+      <button onclick="showView('stats')">통계</button>
+    </div>
+    <div class="utility">
+      <button class="button" onclick="exportCSV()">⬇️ 내보내기</button>
+      <label class="button">
+        ⬆️ 불러오기 <input type="file" accept=".csv" onchange="importCSV(event)" style="display:none">
+      </label>
+      <button class="button" onclick="resetAll()">🧼 초기화</button>
+    </div>
+    <div id="logView">
+      <div class="session-timer">
+        ⏱ 오늘 총 연습 시간: <span id="sessionTime">0분 0초</span>
+        <button class="button" onclick="toggleSessionTimer()" id="sessionBtn">시작</button>
+      </div>
+      <div class="input-group">
+        <input type="text" id="newPiece" placeholder="새 곡 입력 (예: Hanon 39)" />
+        <button class="button" onclick="addPiece()">추가</button>
+      </div>
+      <div id="pieceList"></div>
+    </div>
+    <div id="statsView" style="display:none">
+      <div class="stats-table" id="statsTable"></div>
+    </div>
+  </main>
+
+  <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:1rem; border-radius:12px; width:90%; max-width:400px; text-align:center;">
+      <h3>세션 시간 수정</h3>
+      <div style="margin:1rem 0">
+        <label>시작 시간 (예: 09:30)</label><br/>
+        <input type="time" id="manualStart" style="padding:0.5rem; font-size:1rem; width:70%" />
+      </div>
+      <div style="margin:1rem 0">
+        <label>총 연습 시간 (분)</label><br/>
+        <input type="number" id="manualMinutes" style="padding:0.5rem; font-size:1rem; width:70%" min="1" />
+      </div>
+      <button class="button" onclick="applyManualTime()">저장</button>
+      <button class="button" style="background:#aaa; margin-left:0.5rem" onclick="closeEditModal()">취소</button>
+    </div>
+  </div>
+
+  <script>
     let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
     let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
     let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
@@ -46,6 +128,28 @@
       }
     }
 
+    function openEditModal() {
+      document.getElementById('editModal').style.display = 'flex';
+      document.getElementById('manualStart').value = new Date().toISOString().substring(11, 16);
+      document.getElementById('manualMinutes').value = Math.round(sessionTime[todayStr] || 0);
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    function applyManualTime() {
+      const mins = parseInt(document.getElementById('manualMinutes').value || '0');
+      if (mins > 0) {
+        sessionTime[todayStr] = mins;
+        saveAll();
+        document.getElementById('sessionTime').textContent = formatTime(mins);
+      }
+      closeEditModal();
+    }
+
     renderPieces();
     document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
-</script>
+  </script>
+</body>
+</html>
