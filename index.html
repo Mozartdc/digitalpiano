@@ -124,6 +124,13 @@
             records = parsed.records;
             saveAll();
             renderPieces();
+          }
+        } catch (err) {
+          alert('불러오기 실패');
+        }
+      };
+      reader.readAsText(file);
+    }
 
     function renderByDate() {
       const box = document.getElementById('calendarList');
@@ -141,13 +148,6 @@
           grouped[date].map(r => `🎹 ${r.name} - ${r.count}회`).join('<br>');
         box.appendChild(section);
       });
-    }
-          }
-        } catch (err) {
-          alert('불러오기 실패');
-        }
-      };
-      reader.readAsText(file);
     }
 
     function resetAll() {
