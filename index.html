@@ -172,6 +172,9 @@
       if (rec.count < 0) rec.count = 0;
       saveAll();
       renderPieces();
+      const box = document.getElementById('pieceList');
+      const wrapper = box.children[idx];
+      toggleDetails(idx, wrapper);
     }
 
     function toggleCheck(idx) {
@@ -197,6 +200,31 @@
     function renderStats() {
       const table = document.getElementById('statsTable');
       table.innerHTML = '';
+
+      let totalMinutes = 0;
+      let monthlyMinutes = 0;
+      const now = new Date();
+      const ym = now.toISOString().slice(0, 7);
+      for (const [date, mins] of Object.entries(sessionTime)) {
+        totalMinutes += mins;
+        if (date.startsWith(ym)) monthlyMinutes += mins;
+      }
+
+      const formatHMS = (mins) => {
+        const hours = Math.floor(mins / 60);
+        const minutes = Math.round(mins % 60);
+        return `${hours}시간 ${minutes}분`;
+      };
+
+      const summary = document.createElement('div');
+      summary.innerHTML = `
+        <div style="margin-bottom: 1rem; font-weight: bold;">
+          🕒 총 누적 시간: ${formatHMS(totalMinutes)}<br/>
+          📆 ${ym} 누적: ${formatHMS(monthlyMinutes)}
+        </div>
+      `;
+      table.appendChild(summary);
+
       const totalMap = {};
       records.forEach(r => {
         if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
