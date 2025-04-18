@@ -174,10 +174,11 @@
         countText.textContent = `오늘 ${todayLog?.count || 0}회`;
         countText.style.marginLeft = '0.5rem';
 
-        const topRow = document.createElement('div');
-        topRow.style.display = 'flex';
-        topRow.style.alignItems = 'center';
-        topRow.style.gap = '0.5rem';
+        $1const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.disabled = true;
+        topRow.appendChild(checkbox);
         topRow.appendChild(title);
         topRow.appendChild(addBtn);
         topRow.appendChild(countText);
