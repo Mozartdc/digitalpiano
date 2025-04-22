@@ -203,8 +203,8 @@ function changeCount(idx, delta) {
   rec.count += delta;
   if (rec.count < 0) rec.count = 0;
   saveAll();
-  // renderPieces() 제거
-  // 대신 횟수만 업데이트
+  // 기존 renderPieces() 제거
+  // 바로 해당 위치의 카운트만 업데이트
   const box = document.getElementById('pieceList');
   const wrapper = box.children[idx];
   wrapper.querySelector('.stats').textContent = `${rec.count}회`;
