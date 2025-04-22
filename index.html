@@ -256,9 +256,11 @@ function renderStats() {
   table.appendChild(summary);
   const totalMap = {};
   records.forEach(r => {
-    if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
-    totalMap[r.name].count += r.count;
-  });
+  if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
+  if (r.checked) {
+    totalMap[r.name].count += 1;   // 체크된 날만 +1
+  }
+});
   for (const [name, data] of Object.entries(totalMap)) {
     const row = document.createElement('div');
     row.className = 'stats-row';
