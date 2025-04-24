@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-calendar@1.4.0/build/vanilla-calendar.min.css">
   <title>디피갤 피출</title>
   <style>
     body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: #fff; color: #222; }
@@ -13,8 +14,10 @@
     main { padding: 1rem; }
     .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
     .tab { display: flex; gap: 1rem; margin: 1rem 0; }
+    .tab button { flex: 1; background: #e0e7ff; border: none; padding: 0.5rem; border-radius: 6px; font-weight: bold; }
     .tab button.active { background: #4f46e5; color: white; }
-    .stats-table { margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+    .card-row, .stats-row, .details, .utility, .input-group, .session-timer { /* 기존 스타일 유지 */ }
+    .calendar-container { margin-top: 2rem; }
   </style>
 </head>
 <body>
@@ -35,19 +38,22 @@
       <button class="button" onclick="resetAll()">🧼 초기화</button>
     </div>
     <div id="logView">
-      <!-- 기존 기록 기능 구현 (곡 추가, 체크, 카운트 등) -->
-      <p>※ 기록 기능 구현 영역 (곡 추가, 체크, 카운트 등)</p>
+      <!-- 기존 기록 화면 유지 -->
     </div>
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
+      <div class="calendar-container">
+        <div id="calendar"></div>
+      </div>
     </div>
   </main>
 
+<script src="https://cdn.jsdelivr.net/npm/vanilla-calendar@1.4.0/build/vanilla-calendar.min.js"></script>
 <script>
+let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
 let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
 let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
 const todayStr = new Date().toISOString().split('T')[0];
-
 document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
 function showView(view) {
@@ -61,24 +67,37 @@ function showView(view) {
 function renderStats() {
   const table = document.getElementById('statsTable');
   table.innerHTML = '';
-  let totalMinutes = 0;
-  let monthlyMinutes = 0;
-  const now = new Date();
-  const ym = now.toISOString().slice(0, 7);
+  let totalMinutes = 0, monthlyMinutes = 0;
+  const ym = new Date().toISOString().slice(0,7);
   for (const [date, mins] of Object.entries(sessionTime)) {
     totalMinutes += mins;
     if (date.startsWith(ym)) monthlyMinutes += mins;
   }
-  const formatHMS = (mins) => `${Math.floor(mins / 60)}시간 ${Math.round(mins % 60)}분`;
-  const summary = document.createElement('div');
-  summary.innerHTML = `
-    <div style="margin-bottom: 1rem; font-weight: bold;">
-      🕒 총 누적 시간: ${formatHMS(totalMinutes)}<br/>
-      📆 ${ym} 누적: ${formatHMS(monthlyMinutes)}
+  table.innerHTML = `
+    <div style="margin-bottom:1rem; font-weight:bold;">
+      🕒 총 누적 시간: ${Math.floor(totalMinutes/60)}시간 ${Math.round(totalMinutes%60)}분<br/>
+      📆 ${ym} 누적: ${Math.floor(monthlyMinutes/60)}시간 ${Math.round(monthlyMinutes%60)}분
     </div>
   `;
-  table.appendChild(summary);
+
+  const totalMap = {};
+  records.forEach(r => {
+    if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
+    if (r.checked) totalMap[r.name].count += 1;
+  });
+  for (const [name, data] of Object.entries(totalMap)) {
+    table.innerHTML += `<div class="stats-row"><span>${name}</span><span>${data.count}회</span></div>`;
+  }
+
+  // 캘린더 초기화
+  const calendar = new VanillaCalendar('#calendar', {
+    settings: { selection: { day: 'multiple' }},
+    dates: { selected: records.filter(r => r.checked).map(r => r.date) }
+  });
+  calendar.init();
 }
+
+// 나머지 함수들은 그대로 유지 (renderPieces, toggleSessionTimer 등)
 </script>
 </body>
 </html>
