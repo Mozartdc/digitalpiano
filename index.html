@@ -16,7 +16,7 @@
     .tab { display: flex; gap: 1rem; margin: 1rem 0; }
     .tab button { flex: 1; background: #e0e7ff; border: none; padding: 0.5rem; border-radius: 6px; font-weight: bold; }
     .tab button.active { background: #4f46e5; color: white; }
-    .card-row, .stats-row, .details, .utility, .input-group, .session-timer { /* 기존 스타일 유지 */ }
+    .stats-table { margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
     .calendar-container { margin-top: 2rem; }
   </style>
 </head>
@@ -38,7 +38,11 @@
       <button class="button" onclick="resetAll()">🧼 초기화</button>
     </div>
     <div id="logView">
-      <!-- 기존 기록 화면 유지 -->
+      <div class="input-group">
+        <input type="text" id="newPiece" placeholder="새 곡 입력" />
+        <button class="button" onclick="addPiece()">추가</button>
+      </div>
+      <div id="pieceList"></div>
     </div>
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
@@ -53,8 +57,13 @@
 let pieces = JSON.parse(localStorage.getItem('piecesV4') || '[]');
 let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
 let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
-const todayStr = new Date().toISOString().split('T')[0];
 document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+function saveAll() {
+  localStorage.setItem('piecesV4', JSON.stringify(pieces));
+  localStorage.setItem('recordsV4', JSON.stringify(records));
+  localStorage.setItem('sessionTimeV4', JSON.stringify(sessionTime));
+}
 
 function showView(view) {
   document.getElementById('logView').style.display = view === 'log' ? 'block' : 'none';
@@ -64,40 +73,42 @@ function showView(view) {
   if (view === 'stats') renderStats();
 }
 
+function addPiece() {
+  const input = document.getElementById('newPiece');
+  const name = input.value.trim();
+  if (!name) return;
+  pieces.push({ name, emoji: '🎹', active: true });
+  input.value = '';
+  saveAll();
+  renderPieces();
+}
+
+function renderPieces() {
+  const box = document.getElementById('pieceList');
+  box.innerHTML = '';
+  pieces.forEach(p => {
+    if (!p.active) return;
+    const div = document.createElement('div');
+    div.textContent = `${p.emoji} ${p.name}`;
+    box.appendChild(div);
+  });
+}
+
 function renderStats() {
   const table = document.getElementById('statsTable');
-  table.innerHTML = '';
-  let totalMinutes = 0, monthlyMinutes = 0;
-  const ym = new Date().toISOString().slice(0,7);
-  for (const [date, mins] of Object.entries(sessionTime)) {
-    totalMinutes += mins;
-    if (date.startsWith(ym)) monthlyMinutes += mins;
-  }
-  table.innerHTML = `
-    <div style="margin-bottom:1rem; font-weight:bold;">
-      🕒 총 누적 시간: ${Math.floor(totalMinutes/60)}시간 ${Math.round(totalMinutes%60)}분<br/>
-      📆 ${ym} 누적: ${Math.floor(monthlyMinutes/60)}시간 ${Math.round(monthlyMinutes%60)}분
-    </div>
-  `;
-
-  const totalMap = {};
-  records.forEach(r => {
-    if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
-    if (r.checked) totalMap[r.name].count += 1;
-  });
-  for (const [name, data] of Object.entries(totalMap)) {
-    table.innerHTML += `<div class="stats-row"><span>${name}</span><span>${data.count}회</span></div>`;
-  }
-
-  // 캘린더 초기화
+  table.innerHTML = '<div>통계 요약</div>';
   const calendar = new VanillaCalendar('#calendar', {
-    settings: { selection: { day: 'multiple' }},
+    settings: { selection: { day: 'multiple' } },
     dates: { selected: records.filter(r => r.checked).map(r => r.date) }
   });
   calendar.init();
 }
 
-// 나머지 함수들은 그대로 유지 (renderPieces, toggleSessionTimer 등)
+function exportCSV() { alert("내보내기 기능"); }
+function importCSV() { alert("불러오기 기능"); }
+function resetAll() { localStorage.clear(); location.reload(); }
+
+renderPieces();
 </script>
 </body>
 </html>
