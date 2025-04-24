@@ -14,7 +14,6 @@
     main { padding: 1rem; }
     .button { background: #4f46e5; color: #fff; border: none; border-radius: 6px; padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
     .tab { display: flex; gap: 1rem; margin: 1rem 0; }
-    .tab button { flex: 1; background: #e0e7ff; border: none; padding: 0.5rem; border-radius: 6px; font-weight: bold; }
     .tab button.active { background: #4f46e5; color: white; }
     .stats-table { margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem; }
     .calendar-container { margin-top: 2rem; }
@@ -38,7 +37,7 @@
       <button class="button" onclick="resetAll()">🧼 초기화</button>
     </div>
     <div id="logView">
-      <!-- 생략 -->
+      <!-- 기록 화면 요소 (생략) -->
     </div>
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
@@ -47,9 +46,28 @@
       </div>
     </div>
   </main>
+
 <script src="https://cdn.jsdelivr.net/npm/vanilla-calendar@1.4.0/build/vanilla-calendar.min.js"></script>
 <script>
-// 기존 JS 코드 유지
+let records = JSON.parse(localStorage.getItem('recordsV4') || '[]');
+let sessionTime = JSON.parse(localStorage.getItem('sessionTimeV4') || '{}');
+const todayStr = new Date().toISOString().split('T')[0];
+
+document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+
+function formatTime(mins) {
+  const min = Math.floor(mins);
+  const sec = Math.round((mins - min) * 60);
+  return `${min}분 ${sec}초`;
+}
+
+function showView(view) {
+  document.getElementById('logView').style.display = view === 'log' ? 'block' : 'none';
+  document.getElementById('statsView').style.display = view === 'stats' ? 'block' : 'none';
+  document.querySelectorAll('.tab button').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab button')[view === 'log' ? 0 : 1].classList.add('active');
+  if (view === 'stats') renderStats();
+}
 
 function renderStats() {
   const table = document.getElementById('statsTable');
@@ -62,11 +80,7 @@ function renderStats() {
     totalMinutes += mins;
     if (date.startsWith(ym)) monthlyMinutes += mins;
   }
-  const formatHMS = (mins) => {
-    const hours = Math.floor(mins / 60);
-    const minutes = Math.round(mins % 60);
-    return `${hours}시간 ${minutes}분`;
-  };
+  const formatHMS = (mins) => `${Math.floor(mins / 60)}시간 ${Math.round(mins % 60)}분`;
   const summary = document.createElement('div');
   summary.innerHTML = `
     <div style="margin-bottom: 1rem; font-weight: bold;">
@@ -75,6 +89,7 @@ function renderStats() {
     </div>
   `;
   table.appendChild(summary);
+
   const totalMap = {};
   records.forEach(r => {
     if (!totalMap[r.name]) totalMap[r.name] = { count: 0 };
@@ -86,15 +101,13 @@ function renderStats() {
     row.innerHTML = `<span>${name}</span><span>${data.count}회</span>`;
     table.appendChild(row);
   }
+
   const calendar = new VanillaCalendar('#calendar', {
     settings: { selection: { day: 'multiple' } },
     dates: { selected: records.filter(r => r.checked).map(r => r.date) }
   });
   calendar.init();
 }
-
-renderPieces();
-document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
 </script>
 </body>
 </html>
