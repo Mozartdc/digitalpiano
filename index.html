@@ -37,8 +37,7 @@
       <button class="button" onclick="resetAll()">🧼 초기화</button>
     </div>
     <div id="logView">
-      <!-- 기록 화면 요소 복원 -->
-      <div>여기에 기록 기능 추가</div>
+      <div>※ 기록 기능 구현 영역 (곡 추가, 체크, 카운트 등)</div>
     </div>
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
@@ -56,12 +55,6 @@ const todayStr = new Date().toISOString().split('T')[0];
 
 document.getElementById('today').textContent = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
-function formatTime(mins) {
-  const min = Math.floor(mins);
-  const sec = Math.round((mins - min) * 60);
-  return `${min}분 ${sec}초`;
-}
-
 function showView(view) {
   document.getElementById('logView').style.display = view === 'log' ? 'block' : 'none';
   document.getElementById('statsView').style.display = view === 'stats' ? 'block' : 'none';
@@ -75,8 +68,7 @@ function renderStats() {
   table.innerHTML = '';
   let totalMinutes = 0;
   let monthlyMinutes = 0;
-  const now = new Date();
-  const ym = now.toISOString().slice(0, 7);
+  const ym = new Date().toISOString().slice(0, 7);
   for (const [date, mins] of Object.entries(sessionTime)) {
     totalMinutes += mins;
     if (date.startsWith(ym)) monthlyMinutes += mins;
@@ -108,6 +100,50 @@ function renderStats() {
     dates: { selected: records.filter(r => r.checked).map(r => r.date) }
   });
   calendar.init();
+}
+
+function exportCSV() {
+  const csv = ["날짜,곡명,횟수,메모,링크"];
+  records.forEach(r => {
+    csv.push(`${r.date},${r.name},${r.count || 0},"${(r.note || '').replace(/"/g, '""')}",${r.link || ''}`);
+  });
+  const blob = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "practice_log.csv";
+  link.click();
+}
+
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const lines = e.target.result.split("\n").slice(1);
+    lines.forEach(line => {
+      const [date, name, count, note, link] = line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(s => s.replace(/^"|"$/g, ''));
+      if (!date || !name) return;
+      const rec = records.find(r => r.date === date && r.name === name);
+      if (rec) {
+        rec.count = parseInt(count || 0);
+        rec.note = note;
+        rec.link = link;
+      } else {
+        records.push({ date, name, count: parseInt(count || 0), note, link });
+      }
+    });
+    localStorage.setItem('recordsV4', JSON.stringify(records));
+    alert("불러오기 완료!");
+    renderStats();
+  };
+  reader.readAsText(file);
+}
+
+function resetAll() {
+  if (confirm("정말 모든 데이터를 초기화하시겠습니까? 되돌릴 수 없습니다.")) {
+    localStorage.clear();
+    location.reload();
+  }
 }
 </script>
 </body>
