@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#ffffff" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-calendar@1.4.0/build/vanilla-calendar.min.css">
   <title>디피갤 피출</title>
   <style>
     /* CSS 그대로 유지 */
@@ -70,6 +71,9 @@
     </div>
     <div id="statsView" style="display:none">
       <div class="stats-table" id="statsTable"></div>
+      <div class="calendar-container">
+  <div id="calendar"></div>
+</div>
     </div>
   </main>
 <script>
@@ -317,5 +321,6 @@ function resetAll() {
 renderPieces();
 document.getElementById('sessionTime').textContent = formatTime(sessionTime[todayStr] || 0);
 </script>
+  <script src="https://cdn.jsdelivr.net/npm/vanilla-calendar@1.4.0/build/vanilla-calendar.min.js"></script>
 </body>
 </html>
